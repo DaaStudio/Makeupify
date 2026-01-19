@@ -34,7 +34,7 @@ export const generateMakeup = async ({
   const ai = new GoogleGenAI({ apiKey });
 
   // Switched to 1.5-flash for better stability and higher quota limits
-  const model = 'gemini-1.5-flash'; 
+  const model = 'gemini-1.5-flash-latest'; 
   
   let userPrompt = "";
   const parts: any[] = [];
