@@ -1,0 +1,5 @@
+{
+  "name": "Makeupify - Smart Makeup Editor",
+  "description": "A sophisticated AI-powered makeup editor allowing users to upload photos, apply makeup styles via text, presets, or reference images, and view before/after results.",
+  "requestFramePermissions": []
+}
