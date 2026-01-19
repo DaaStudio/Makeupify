@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Gender } from "../types";
+import { Gender } from "../types"; 
 
 const getSystemInstruction = (gender: Gender) => {
   return `You are a professional makeup artist and image editor. Your task is to modify the provided user photo by applying specific makeup techniques. 
