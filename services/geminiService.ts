@@ -29,7 +29,7 @@ export const generateMakeup = async ({
   gender
 }: GenerateMakeupParams): Promise<string> => {
   
-  const apiKey = process.env.API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) throw new Error("API Key not found");
 
   const ai = new GoogleGenAI({ apiKey });
