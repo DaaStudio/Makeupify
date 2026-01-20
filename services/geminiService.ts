@@ -6,18 +6,19 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // En basit model tanımlama
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Model ismini tam yol olarak veriyoruz ve v1beta'yı zorunlu kılıyoruz
+  const model = genAI.getGenerativeModel(
+    { model: "models/gemini-2.0-flash-exp" }, 
+    { apiVersion: 'v1beta' }
+  );
 
   const cleanBase64 = (b64: string) => b64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
-  // System instruction'ı doğrudan ana komutun başına ekliyoruz
-  const systemBase = `INSTRUCTION: You are a professional makeup artist. Apply makeup to the person in the first photo. User gender: ${gender}. Match styles if a second photo is provided. Output ONLY the modified image data as inlineData. Do not return text.`;
-  
-  const userRequest = `${systemBase} \n\n USER PROMPT: ${prompt || "Apply a natural makeup look."}`;
+  // Tüm talimatları tek bir metin parçasına topluyoruz
+  const systemText = `You are a professional makeup artist. Apply makeup to the person in the first image. User is ${gender}. ${prompt || "Natural makeup"}. Match the second image style if provided. Return ONLY the edited image.`;
 
-  const parts: any[] = [
-    { text: userRequest },
+  const parts = [
+    { text: systemText },
     { inlineData: { data: cleanBase64(originalImage), mimeType: "image/jpeg" } }
   ];
 
@@ -26,21 +27,17 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
   }
 
   try {
-    // En sade gönderme biçimi
     const result = await model.generateContent(parts);
     const response = await result.response;
     
+    // Yanıtın içinde resim verisi var mı kontrol et
     const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
     
     if (imagePart?.inlineData?.data) {
       return `data:image/jpeg;base64,${imagePart.inlineData.data}`;
     }
     
-    // Eğer resim gelmezse modelin ne dediğine bakalım
-    const textResponse = response.text();
-    console.warn("Model did not return image, returned text instead:", textResponse);
-    throw new Error("Model resim üretmedi. Lütfen farklı bir komut deneyin.");
-    
+    throw new Error("Model resim üretmedi, muhtemelen metin cevabı verdi.");
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     throw error;
