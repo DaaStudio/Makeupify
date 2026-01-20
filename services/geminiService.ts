@@ -8,23 +8,30 @@ export const generateMakeup = async ({
   originalImage,
   method,
   prompt,
-  referenceImage
+  referenceImage,
+  gender
 }: any): Promise<string> => {
   
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // En sade model tanımlama (v1 kararlı sürümünde)
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+  // ÖNEMLİ: Model isminin başına 'models/' ekledik ve v1beta'ya geri döndük
+  const model = genAI.getGenerativeModel(
+    { model: "models/gemini-1.5-flash" }, 
+    { apiVersion: 'v1beta' }
+  );
   
   const parts: any[] = [];
+  
+  // 1. Orijinal Resim
   parts.push({
     inlineData: {
       data: cleanBase64(originalImage),
-      mimeType: "image/jpeg" 
+      mimeType: "image/jpeg"
     }
   });
 
+  // 2. İstek Metni
   let userPrompt = prompt || "Apply a natural makeup look.";
   if (method === 'transfer' && referenceImage) {
     parts.push({
@@ -33,28 +40,26 @@ export const generateMakeup = async ({
         mimeType: "image/jpeg"
       }
     });
-    userPrompt = "Apply the makeup style from the second image to the first image.";
+    userPrompt = `Apply the makeup style from the second image to the person in the first image. The user is ${gender}. Keep it realistic.`;
+  } else {
+    userPrompt = `${userPrompt}. The user is ${gender}. Maintain realistic skin texture.`;
   }
-  
-  parts.push({ text: userPrompt });
 
   try {
-    // Sadece temel içeriği gönderiyoruz
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: parts }]
-    });
-
+    const result = await model.generateContent([userPrompt, ...parts]);
     const response = await result.response;
-    const candidate = response.candidates?.[0];
-    const part = candidate?.content?.parts?.find(p => p.inlineData);
     
-    if (part?.inlineData?.data) {
-      return `data:image/jpeg;base64,${part.inlineData.data}`;
+    // Yanıtın içinde resim var mı kontrol et
+    const candidate = response.candidates?.[0];
+    const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
+    
+    if (imagePart?.inlineData?.data) {
+      return `data:image/jpeg;base64,${imagePart.inlineData.data}`;
     }
     
-    throw new Error("No image data found in response.");
+    throw new Error("Model resim üretmedi, sadece metin döndürdü.");
   } catch (error: any) {
-    console.error("Gemini Error:", error);
+    console.error("Detaylı Gemini Hatası:", error);
     throw error;
   }
 };
