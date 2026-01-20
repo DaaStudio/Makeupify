@@ -6,15 +6,16 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // ÖNEMLİ: Başına 'models/' ekleyerek ve v1beta kullanarak yolu kesinleştiriyoruz
+  // GÖRSEL ÜRETEBİLEN TEK MODEL BU. 
+  // 1.5 Flash sadece metin üretir, o yüzden 404 veriyordu.
   const model = genAI.getGenerativeModel(
-    { model: "models/gemini-1.5-flash" }, 
+    { model: "models/gemini-2.0-flash-exp" }, 
     { apiVersion: 'v1beta' }
   );
 
   const cleanBase64 = (b64: string) => b64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
-  const systemText = `You are a professional makeup artist. Apply makeup to the person in the first image. User gender: ${gender}. ${prompt || "Natural makeup"}. Return ONLY the edited image as data.`;
+  const systemText = `You are a professional makeup artist. Apply makeup to the person in the first image. User gender: ${gender}. ${prompt || "Natural makeup"}. Return ONLY the edited image.`;
 
   const parts = [
     { text: systemText },
@@ -35,8 +36,13 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
       return `data:image/jpeg;base64,${imagePart.inlineData.data}`;
     }
     
-    throw new Error("Model resim üretmedi. Lütfen tekrar deneyin.");
+    throw new Error("Model resim oluşturamadı.");
   } catch (error: any) {
+    // 429 HATASI YÖNETİMİ (KOTA DOLARSA)
+    if (error.message?.includes("429") || error.status === 429) {
+      console.error("Kota Doldu:", error);
+      throw new Error("Çok fazla istek yapıldı. Lütfen 30 saniye bekleyip tekrar deneyin (Ücretsiz Sürüm Limiti).");
+    }
     console.error("Gemini API Error:", error);
     throw error;
   }
