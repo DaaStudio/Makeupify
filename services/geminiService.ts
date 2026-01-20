@@ -1,50 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Gender } from "../types";
-
-const getSystemInstruction = (gender: Gender) => {
-  return `You are a professional makeup artist and image editor. Your task is to modify the provided user photo by applying specific makeup techniques. 
-  The user identifies as ${gender}. Adjust the makeup application to be appropriate and flattering for this gender.
-  Ensure the skin texture remains realistic. Do not cartoonize the image. Maintain the original identity of the person.
-  Output ONLY the modified image.`;
-};
 
 const cleanBase64 = (b64: string) => {
   return b64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 };
 
-interface GenerateMakeupParams {
-  originalImage: string;
-  method: 'text' | 'transfer';
-  prompt?: string;
-  referenceImage?: string;
-  gender: Gender;
-}
-
 export const generateMakeup = async ({
   originalImage,
   method,
   prompt,
-  referenceImage,
-  gender
-}: GenerateMakeupParams): Promise<string> => {
+  referenceImage
+}: any): Promise<string> => {
   
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("API Key not found.");
-
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // DÜZELTME: SystemInstruction model tanımlanırken verilmeli
-  const model = genAI.getGenerativeModel(
-    { 
-      model: "gemini-1.5-flash",
-      systemInstruction: getSystemInstruction(gender) // Buraya taşındı
-    },
-    { apiVersion: 'v1' }
-  );
+  // En sade model tanımlama (v1 kararlı sürümünde)
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
   
   const parts: any[] = [];
-
-  // Orijinal Görüntü
   parts.push({
     inlineData: {
       data: cleanBase64(originalImage),
@@ -53,7 +26,6 @@ export const generateMakeup = async ({
   });
 
   let userPrompt = prompt || "Apply a natural makeup look.";
-  
   if (method === 'transfer' && referenceImage) {
     parts.push({
       inlineData: {
@@ -61,14 +33,13 @@ export const generateMakeup = async ({
         mimeType: "image/jpeg"
       }
     });
-    userPrompt = "Apply the makeup style seen in the second image onto the person in the first image.";
+    userPrompt = "Apply the makeup style from the second image to the first image.";
   }
-
-  // Komut metnini ekle
+  
   parts.push({ text: userPrompt });
 
   try {
-    // DÜZELTME: generateContent içeriği sadeleştirildi
+    // Sadece temel içeriği gönderiyoruz
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: parts }]
     });
@@ -81,17 +52,9 @@ export const generateMakeup = async ({
       return `data:image/jpeg;base64,${part.inlineData.data}`;
     }
     
-    // Eğer resim gelmezse hatayı yakala
-    throw new Error("Model did not return an image. It might have returned text instead.");
-
+    throw new Error("No image data found in response.");
   } catch (error: any) {
-    console.error("Gemini Error Details:", error);
-    let msg = "Something went wrong. Please try again.";
-    
-    if (error.message?.includes("429")) {
-      msg = "Our servers are busy. Please wait a minute and try again.";
-    }
-    
-    throw new Error(msg);
+    console.error("Gemini Error:", error);
+    throw error;
   }
 };
