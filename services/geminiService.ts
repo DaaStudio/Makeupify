@@ -8,8 +8,8 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
   
   // Model ismini tam yol olarak veriyoruz ve v1beta'yı zorunlu kılıyoruz
   const model = genAI.getGenerativeModel(
-    { model: "models/gemini-2.0-flash-exp" }, 
-    { apiVersion: 'v1beta' }
+      { model: "gemini-1.5-flash" }, 
+      { apiVersion: 'v1' }
   );
 
   const cleanBase64 = (b64: string) => b64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
