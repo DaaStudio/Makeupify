@@ -17,8 +17,8 @@ export const generateMakeup = async ({
   
   // ÖNEMLİ: Model isminin başına 'models/' ekledik ve v1beta'ya geri döndük
   const model = genAI.getGenerativeModel(
-    { model: "models/gemini-1.5-flash" }, 
-    { apiVersion: 'v1beta' }
+  { model: "gemini-1.5-pro" }, // Flash yerine Pro kullanıyoruz
+  { apiVersion: 'v1beta' }
   );
   
   const parts: any[] = [];
