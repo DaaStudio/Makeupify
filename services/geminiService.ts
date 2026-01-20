@@ -6,19 +6,18 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // ÖNEMLİ: v1beta üzerinden 'gemini-1.5-flash' çağırıyoruz. 
-  // Bu hem 404 hatasını önler hem de 2.0'daki gibi hızlı kota bitirmez.
+  // ÖNEMLİ: Başına 'models/' ekleyerek ve v1beta kullanarak yolu kesinleştiriyoruz
   const model = genAI.getGenerativeModel(
-    { model: "gemini-1.5-flash" }, 
+    { model: "models/gemini-1.5-flash" }, 
     { apiVersion: 'v1beta' }
   );
 
   const cleanBase64 = (b64: string) => b64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
-  const systemPrompt = `You are an AI makeup artist. Apply makeup to the person in the first image. User gender: ${gender}. ${prompt || "Natural makeup style"}. Return ONLY the processed image as inlineData.`;
+  const systemText = `You are a professional makeup artist. Apply makeup to the person in the first image. User gender: ${gender}. ${prompt || "Natural makeup"}. Return ONLY the edited image as data.`;
 
   const parts = [
-    { text: systemPrompt },
+    { text: systemText },
     { inlineData: { data: cleanBase64(originalImage), mimeType: "image/jpeg" } }
   ];
 
@@ -36,9 +35,7 @@ export const generateMakeup = async ({ originalImage, method, prompt, referenceI
       return `data:image/jpeg;base64,${imagePart.inlineData.data}`;
     }
     
-    // Eğer resim gelmezse modelin metin cevabına bakalım
-    console.log("Model Text Response:", response.text());
-    throw new Error("Model resim üretmedi, lütfen tekrar deneyin.");
+    throw new Error("Model resim üretmedi. Lütfen tekrar deneyin.");
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     throw error;
